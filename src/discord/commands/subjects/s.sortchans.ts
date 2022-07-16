@@ -1,5 +1,5 @@
 import Bottleneck from "bottleneck";
-import { AutocompleteInteraction, CategoryChannel, Channel, CommandInteraction, GuildChannel, Role, RolePosition, TextChannel, VoiceChannel } from "discord.js";
+import { AutocompleteInteraction, CategoryChannel, Channel, CommandInteraction, GuildBasedChannel, GuildChannel, Role, RolePosition, TextChannel, VoiceChannel } from "discord.js";
 import { DB, GuildEntity, SubjectEntity, SubjectInGuildEntity } from "../../../db";
 import UserError from "../../UserError";
 import { array_chunks, channelPatchLimiter, limiter } from "../../util";
@@ -8,8 +8,10 @@ export async function sort_channels(interaction: CommandInteraction) {
 	await interaction.deferReply();
 	console.log(`Sorting '${interaction.guild!.name}' chankles - oh god!!!! WTF!!!`);
 
+	const parent_category = interaction.options.getChannel('parent_category') as GuildBasedChannel | null;
+	const new_category_name = interaction.options.getString('new_category_name') || '';
 	const category_max = interaction.options.getInteger('category_max') || 50;
-	const category_match = interaction.options.getString('category_match') || '';
+	if(!parent_category || parent_category.type !== 'GUILD_CATEGORY') throw new UserError('`parent_category` is required to be a category channel!');
 
 	const sgRepo = DB.getRepository(SubjectInGuildEntity)
 	const gRepo = DB.getRepository(GuildEntity);
@@ -26,24 +28,20 @@ export async function sort_channels(interaction: CommandInteraction) {
 	const chunks = array_chunks(subjectChannels, category_max);
 
 	await Promise.all(chunks.map(async (channels, i) => {
-		const category = await channelPatchLimiter.schedule(() => interaction.guild!.channels.create(category_match, {
+		const category = await channelPatchLimiter.schedule(() => interaction.guild!.channels.create(new_category_name, {
 			type: 'GUILD_CATEGORY',
+			position: parent_category.position,
 			permissionOverwrites: [
 				{ id: interaction.guild!.roles.everyone.id, deny: 'VIEW_CHANNEL' },
-			]
+			],
 		}));
 		
 		for(const [chanI, channel] of channels.entries()) {
-			await channelPatchLimiter.schedule(() => channel.setParent(category));
+			await channelPatchLimiter.schedule(() => channel.setParent(category, { lockPermissions: false }));
 			await channelPatchLimiter.schedule(() => channel.setPosition(chanI));
 		}
 	}));
-
-	// chunks.forEach((channels, catIndex) => {
-	// 	console.log(`V Subjects ${catIndex}`);
-	// 	channels.forEach((channel, i) => console.log(`${`${i}`.padStart(`${channels.length}`.length || 1)} #${channel.name}`))
-	// })
-
+	
 	await interaction.editReply('it\'s done...');
 }
 
