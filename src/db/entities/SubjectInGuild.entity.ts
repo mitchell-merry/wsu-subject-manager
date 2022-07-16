@@ -21,6 +21,10 @@ export class SubjectInGuildEntity {
 	@Column()
 	role!: string;
 
+	/** Whether or not the associated channel should be sorted to the top */
+	@Column({ default: false })
+	priority!: boolean;
+
 	/** The guild entity. */
 	@ManyToOne(() => GuildEntity, guild => guild.subjects)
 	@JoinColumn({ name: 'guild_id' })
