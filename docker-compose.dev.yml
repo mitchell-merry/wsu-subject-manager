@@ -1,0 +1,29 @@
+services: 
+  wsu-db:
+    image: mysql
+    container_name: wsu-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    cap_add:
+      - SYS_NICE
+    ports:
+      - 6034:3306
+    volumes:
+      - db-data:/var/lib/mysql
+  
+  wsu-pma:
+    # latest was broken at the time of creation
+    image: phpmyadmin/phpmyadmin:5.1.1
+    container_name: wsu-pma
+    environment:
+      PMA_HOST: wsu-db
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - 8082:80
+    depends_on:
+      - wsu-db
+
+volumes:
+  db-data:

@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "CommonJS",
+		"lib": [ "es6", "es5" ],
+		"moduleResolution": "node",
+		"declaration": true,
+		"outDir": "./dist",
+		"esModuleInterop": true,
+		"incremental": true,
+
+		"strict": true,
+		"allowJs": true,
+		"forceConsistentCasingInFileNames": true,
+
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"resolveJsonModule": true
+	},
+	"include": [ "src/**/*.ts" ]
+}
