@@ -21,7 +21,8 @@ export const data = new SlashCommandBuilder()
 			.setRequired(true).setAutocomplete(true))
 		.addChannelOption(o => o
 			.setName('channel')
-			.setDescription('The channel for this subject. Specify a category for generation.'))
+			.setDescription('The channel for this subject. Specify a category for generation.')
+			.setRequired(true))
 		.addRoleOption(o => o
 			.setName('role')
 			.setDescription('The role to give to people who select this subject.')))

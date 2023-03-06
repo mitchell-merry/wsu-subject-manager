@@ -23,10 +23,11 @@ export async function add(interaction: CommandInteraction) {
 	if(sgEnt) throw new UserError(`The subject ${subjEnt.name} is already tracked in this server.`);
 
 	let role = interaction.options.getRole('role') as Role;
-	let gbChannel = interaction.options.getChannel('channel') as GuildBasedChannel;
-	if(gbChannel.type !== 'GUILD_TEXT' && gbChannel.type !== 'GUILD_CATEGORY') throw new UserError(`Channel must be a category or text channel.`);
-	if(gbChannel.type === 'GUILD_CATEGORY' && gbChannel.children.size >= 50) throw new UserError(`Category is full! Categories can only have max 50 channels, and ${gbChannel.name} has ${gbChannel.children.size}.`);
-
+	let gbChannel = interaction.options.getChannel('channel');
+	if (!gbChannel) throw new UserError("channel required");
+	if (gbChannel.type !== 'GUILD_TEXT' && gbChannel.type !== 'GUILD_CATEGORY') throw new UserError(`Channel must be a category or text channel.`);
+	if (gbChannel.type === 'GUILD_CATEGORY' && gbChannel.children.size >= 50) throw new UserError(`Category is full! Categories can only have max 50 channels, and ${gbChannel.name} has ${gbChannel.children.size}.`);
+	
 	let parent_role: Role | null;
 	if(!role) {
 		if(!guildEnt.parent_role) throw new UserError("Parent role is required atm.");
@@ -50,28 +51,26 @@ export async function add(interaction: CommandInteraction) {
 	}
 	
 	let channel: GuildChannel | undefined;
-	if(gbChannel) {
-		const permissionOverwrites: OverwriteResolvable[] = [
-			{ id: interaction.guild!.me!.id, allow: 'VIEW_CHANNEL' },
-			{ id: role.id, allow: 'VIEW_CHANNEL' },
-			{ id: interaction.guild!.roles.everyone.id, deny: 'VIEW_CHANNEL' },
-		];
+	const permissionOverwrites: OverwriteResolvable[] = [
+		{ id: interaction.guild!.me!.id, allow: 'VIEW_CHANNEL' },
+		{ id: role.id, allow: 'VIEW_CHANNEL' },
+		{ id: interaction.guild!.roles.everyone.id, deny: 'VIEW_CHANNEL' },
+	];
 
-		if(gbChannel.type === 'GUILD_CATEGORY') {
-			channel = await gbChannel.createChannel(subjEnt.name, { 
-				type: 'GUILD_TEXT',
-				reason,
-				topic: `${subjEnt.subject_code} - ${subjEnt.details_link}`,
-				permissionOverwrites,
-				nsfw: false
-			});
-		} else {
-			channel = gbChannel;
+	if(gbChannel.type === 'GUILD_CATEGORY') {
+		channel = await gbChannel.createChannel(subjEnt.name, { 
+			type: 'GUILD_TEXT',
+			reason,
+			topic: `${subjEnt.subject_code} - ${subjEnt.details_link}`,
+			permissionOverwrites,
+			nsfw: false
+		});
+	} else {
+		channel = gbChannel;
 
-			// update perms to be corncrect
-			await channel.permissionOverwrites.set(permissionOverwrites, reason);
-		}
-	} 
+		// update perms to be corncrect
+		await channel.permissionOverwrites.set(permissionOverwrites, reason);
+	}
 	
 	// create relation in DB
 	await sgRepo.save(sgRepo.create({ guild: guildEnt, subject: subjEnt, role: role.id, channel: channel?.id }));
